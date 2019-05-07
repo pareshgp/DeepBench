@@ -1,6 +1,6 @@
 
 NVCC=nvcc
-ARCH?=sm_70
+ARCH?=sm_75
 
 CUDA_PATH?=/usr/local/cuda
 CUDA_LIB64=$(CUDA_PATH)/lib64
@@ -18,7 +18,7 @@ CONV_LIBRARY?=cudnn
 CONV_PATH?=$
 KERNELS_DIR=../kernels/
 PAD_KERNELS?=1
-USE_TENSOR_CORES?=0
+USE_TENSOR_CORES?=1
 COMMA=,
 NVCC_ARCH_ARGS=$(foreach a,$(subst $(COMMA), ,$(ARCH)),--generate-code arch=$(patsubst sm_%,compute_%,$(a)),code=$(a))
 

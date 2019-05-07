@@ -75,7 +75,7 @@ int time_gemm(Tensor<T1> A, Tensor<T1> B, Tensor<T2> C, bool a_t, bool b_t, cubl
     int k = a_t ? A.dims()[0] : A.dims()[1];
     int n = C.dims()[1];
 
-    int numRepeats = 400;
+    int numRepeats = 2000;
     cublasStatus_t stat;
 
 #if (__CUDACC_VER_MAJOR__ >= 8)
@@ -88,8 +88,8 @@ int time_gemm(Tensor<T1> A, Tensor<T1> B, Tensor<T2> C, bool a_t, bool b_t, cubl
     if (std::is_same<T1, uint16_t>::value) {
         A_type = CUDA_R_16F;
         B_type = CUDA_R_16F;
-        C_type = CUDA_R_16F;
-        compute_type = CUDA_R_16F;
+        C_type = CUDA_R_32F;
+        compute_type = CUDA_R_32F;
     }
 
     if (std::is_same<T1, uint8_t>::value) {
@@ -292,9 +292,10 @@ int main(int argc, char **argv) {
         } else if (precision == "half") {
             auto a = rand<uint16_t>({a_t ? k : m, a_t ? m : k}, curand_gen);
             auto b = rand<uint16_t>({b_t ? n : k, b_t ? k : n}, curand_gen);
-            auto c = zeros<uint16_t>({m, n});
+	    //auto c = zeros<uint16_t>({m, n});
+            auto c = zeros<float>({m, n});
             std::cout << std::setw(13) << precision;
-            time_ms = time_gemm<uint16_t, uint16_t>(a, b, c, a_t, b_t, cublas_handle);
+            time_ms = time_gemm<uint16_t, float>(a, b, c, a_t, b_t, cublas_handle);
         } else if (precision == "float") {
             auto a = rand<float>({a_t ? k : m, a_t ? m : k}, curand_gen);
             auto b = rand<float>({b_t ? n : k, b_t ? k : n}, curand_gen);
