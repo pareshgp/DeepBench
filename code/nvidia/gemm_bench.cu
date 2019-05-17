@@ -75,7 +75,7 @@ int time_gemm(Tensor<T1> A, Tensor<T1> B, Tensor<T2> C, bool a_t, bool b_t, cubl
     int k = a_t ? A.dims()[0] : A.dims()[1];
     int n = C.dims()[1];
 
-    int numRepeats = 2000;
+    int numRepeats = 40000;
     cublasStatus_t stat;
 
 #if (__CUDACC_VER_MAJOR__ >= 8)
