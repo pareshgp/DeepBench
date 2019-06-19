@@ -1,6 +1,9 @@
 // Vector saves m, n, k, a_t, b_t
 std::vector<std::tuple<int, int, int, bool, bool>> training_set = {
+    std::make_tuple(8192, 8192, 8192, false, false),
+    std::make_tuple(8192, 8192, 8192, false, true),
     std::make_tuple(4096, 4096, 4096, false, false),
+    std::make_tuple(4096, 4096, 4096, false, true),
     std::make_tuple(1024, 1024, 1024, false, false),
     std::make_tuple(512, 512, 512, false, false),
 /*
