@@ -93,11 +93,12 @@ public:
 
     cudnnCNN(int w, int h, int c, int n, int k, int r, int s,
              int pad_w, int pad_h, int wstride, int hstride,
-             int inference)
+             int group_count, int inference)
              :
         cudnn_handle_(),
         conv_desc_(pad_h, pad_w, hstride, wstride)
     {
+        
         int out_h, out_w, out_c, out_n;
 
         cudnnTensorFormat_t format;
@@ -109,7 +110,11 @@ public:
         }
 
         x_desc_ = TensorDescriptor4d<T1>(format, n, c, h, w);
-        w_desc_ = FilterDescriptor4d<T1>(format, k, c, r, s);
+        w_desc_ = FilterDescriptor4d<T1>(format, k, c/group_count, r, s);
+
+        // Set group count
+        CHECK_CUDNN_ERROR(cudnnSetConvolutionGroupCount(conv_desc_.desc(),
+                                                        group_count));
 
 #if (CUDNN_MAJOR >= 7) && (USE_TENSOR_CORES)
         cudnnSetConvolutionMathType(conv_desc_.desc(), CUDNN_TENSOR_OP_MATH);
@@ -401,12 +406,13 @@ std::tuple<int, int, int, std::string, std::string, std::string> time_cnn(
          int n, int h, int w,
          int pad_h, int pad_w,
          int hstride, int wstride,
+         int group_count,
          int num_repeats,
          curandGenerator_t curand_gen,
          int inference
         ) {
 
-    cudnnCNN<T1, T2> cnn(w, h, c, n, k, r, s, pad_w, pad_h, wstride, hstride, inference);
+    cudnnCNN<T1, T2> cnn(w, h, c, n, k, r, s, pad_w, pad_h, wstride, hstride, group_count, inference);
 
     // Allocate memory for filter
     auto filter = rand<T1>(std::vector<int>{s, r, c, k}, curand_gen);
@@ -530,7 +536,7 @@ int main(int argc, char **argv) {
     std::cout << std::setw(30) << "Times" << std::endl;
     std::cout << std::setfill('-') << std::setw(190) << "-" << std::endl;
     std::cout << std::setfill(' ');
-    std::cout << "   w      h      c      n      k      f_w    f_h  pad_w  pad_h    stride_w  stride_h    precision  fwd_time (usec)  ";
+    std::cout << "   w      h      c      n      k      f_w    f_h  pad_w  pad_h    stride_w  stride_h  group    precision  fwd_time (usec)  ";
 
     if (!inference) {
         std::cout << "bwd_inputs_time (usec)  bwd_params_time (usec)  ";
@@ -561,7 +567,10 @@ int main(int argc, char **argv) {
         // Stride
         int wstride, hstride;
 
-        std::tie(w, h, c, n, k, s, r, pad_w, pad_h, wstride, hstride) = problem;
+        // Groups
+        int group_count;
+
+        std::tie(w, h, c, n, k, s, r, pad_w, pad_h, wstride, hstride, group_count) = problem;
 
         bool skip_kernel = false;
         bool need_padding = false;
@@ -616,14 +625,14 @@ int main(int argc, char **argv) {
 #if CUDNN_MAJOR >= 6
         if (precision == "float") {
             std::tie(fwd_time, bwd_inputs_time, bwd_params_time, fwd_algo_s, bwd_inputs_algo_s, bwd_params_algo_s) =
-                time_cnn<float, float>(k, padded_c, r, s, n, padded_h, padded_w, pad_h, pad_w, hstride, wstride, num_repeats, curand_gen, inference);
+                time_cnn<float, float>(k, padded_c, r, s, n, padded_h, padded_w, pad_h, pad_w, hstride, wstride, group_count, num_repeats, curand_gen, inference);
         } else if (precision == "half") {
             std::tie(fwd_time, bwd_inputs_time, bwd_params_time, fwd_algo_s, bwd_inputs_algo_s, bwd_params_algo_s) =
-                time_cnn<uint16_t, uint16_t>(k, padded_c, r, s, n, padded_h, padded_w, pad_h, pad_w, hstride, wstride, num_repeats, curand_gen, inference);
+                time_cnn<uint16_t, uint16_t>(k, padded_c, r, s, n, padded_h, padded_w, pad_h, pad_w, hstride, wstride, group_count, num_repeats, curand_gen, inference);
         } else if ((precision == "int8") && inference) {
             if (!skip_kernel) {
                 std::tie(fwd_time, bwd_inputs_time, bwd_params_time, fwd_algo_s, bwd_inputs_algo_s, bwd_params_algo_s) =
-                    time_cnn<uint8_t, int>(k, padded_c, r, s, n, padded_h, padded_w, pad_h, pad_w, hstride, wstride, num_repeats, curand_gen, inference);
+                    time_cnn<uint8_t, int>(k, padded_c, r, s, n, padded_h, padded_w, pad_h, pad_w, hstride, wstride, group_count, num_repeats, curand_gen, inference);
             }
         } else {
             throw std::runtime_error(ss.str());
@@ -632,7 +641,7 @@ int main(int argc, char **argv) {
         if (precision != "float")
             throw std::runtime_error(ss.str());
         std::tie(fwd_time, bwd_inputs_time, bwd_params_time, fwd_algo_s, bwd_inputs_algo_s, bwd_params_algo_s) =
-            time_cnn<float, float>(k, c, r, s, n, h, w, pad_h, pad_w, hstride, wstride, num_repeats, curand_gen, inference);
+            time_cnn<float, float>(k, c, r, s, n, h, w, pad_h, pad_w, hstride, wstride, group_count, num_repeats, curand_gen, inference);
 #endif
 
         std::cout << std::setw(5) << w;
@@ -646,6 +655,7 @@ int main(int argc, char **argv) {
         std::cout << std::setw(8) << pad_h;
         std::cout << std::setw(10) << wstride;
         std::cout << std::setw(10) << hstride;
+        std::cout << std::setw(10) << group_count;
         std::cout << std::setw(10) << precision;
         std::cout << std::setw(15) << std::setprecision(7);
 
