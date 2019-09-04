@@ -44,14 +44,18 @@ class miopenCNN {
 public:
 
     miopenCNN(int _w, int _h, int c, int n, int k, int r, int s,
-             int pad_w, int pad_h, int wstride, int hstride, Tensor<T> x, Tensor<T> w)
+             int pad_w, int pad_h, int wstride, int hstride, Tensor<T> x, Tensor<T> w,
+             int group_count)
              :
         miopen_handle_(),
         x_desc_(n, c, _h, _w),
-        w_desc_(k, c, r, s),
+        w_desc_(k, c/group_count, r, s),
         conv_desc_(pad_h, pad_w, hstride, wstride)
     {
         int out_h, out_w, out_c, out_n;
+
+        // Set group count
+        CHECK_MIOPEN_ERROR(miopenSetConvolutionGroupCount(conv_desc_.desc(), group_count));
 
         // Get output dimensions
         CHECK_MIOPEN_ERROR(miopenGetConvolutionForwardOutputDim(conv_desc_.desc(),
@@ -289,6 +293,7 @@ std::tuple<int, int, int, std::string, std::string, std::string> time_cnn(
          int n, int h, int w,
          int pad_h, int pad_w,
          int hstride, int wstride,
+         int group_count,
          int num_repeats
         ) {
 
@@ -298,7 +303,7 @@ std::tuple<int, int, int, std::string, std::string, std::string> time_cnn(
 
     // Allocate memory for input
     auto input = rand<T>(std::vector<int>{w, h, c, n});
-    miopenCNN<T> cnn(w, h, c, n, k, r, s, pad_w, pad_h, wstride, hstride, input, filter);
+    miopenCNN<T> cnn(w, h, c, n, k, r, s, pad_w, pad_h, wstride, hstride, input, filter, group_count);
 
     // Allocate memory for output tensor
     auto output = cnn.getOutputTensor();
@@ -382,7 +387,7 @@ int main(int argc, char **argv) {
     std::cout << std::setw(30) << "Times" << std::endl;
     std::cout << std::setfill('-') << std::setw(190) << "-" << std::endl;
     std::cout << std::setfill(' ');
-    std::cout << "   w      h      c      n      k      f_w      f_h    pad_w  pad_h    stride_w  stride_h    fwd_time (usec)  bwd_inputs_time (usec)  bwd_params_time (usec)  total_time (usec)   fwd_algo " << std::endl;
+    std::cout << "   w      h      c      n      k      f_w      f_h    pad_w  pad_h    stride_w  stride_h  group    fwd_time (usec)  bwd_inputs_time (usec)  bwd_params_time (usec)  total_time (usec)   fwd_algo " << std::endl;
     std::cout << std::setfill('-') << std::setw(190) << "-" << std::endl;
     std::cout << std::setfill(' ');
 
@@ -401,7 +406,10 @@ int main(int argc, char **argv) {
         // Stride
         int wstride, hstride;
 
-        std::tie(w, h, c, n, k, s, r, pad_w, pad_h, wstride, hstride) = problem;
+        // Groups
+        int group_count;
+
+        std::tie(w, h, c, n, k, s, r, pad_w, pad_h, wstride, hstride, group_count) = problem;
 
         int fwd_time, bwd_inputs_time, bwd_params_time;
         std::string fwd_algo_s;
@@ -411,7 +419,7 @@ int main(int argc, char **argv) {
         if( precision == "float" )
         {
             std::tie(fwd_time, bwd_inputs_time, bwd_params_time, fwd_algo_s, bwd_inputs_algo_s, bwd_params_algo_s) =
-                time_cnn<float>(k, c, r, s, n, h, w, pad_h, pad_w, hstride, wstride, num_repeats);
+                time_cnn<float>(k, c, r, s, n, h, w, pad_h, pad_w, hstride, wstride, group_count, num_repeats);
         }
         else
         {
@@ -429,6 +437,7 @@ int main(int argc, char **argv) {
         std::cout << std::setw(8) << pad_h;
         std::cout << std::setw(10) << wstride;
         std::cout << std::setw(10) << hstride;
+        std::cout << std::setw(10) << group_count;
         std::cout << std::setw(14) << std::setprecision(7) << fwd_time;
         std::cout << std::setw(24) << std::setprecision(7) << bwd_inputs_time;
         std::cout << std::setw(24) << std::setprecision(7) << bwd_params_time;
