@@ -59,8 +59,8 @@ class miopenBN {
     Tensor<float> save_mean_;
     Tensor<float> save_var_;
 
-    const float alpha_ = 1.f;
-    const float beta_  = 0.f;
+    float alpha_ = 1.f;
+    float beta_  = 0.f;
 
     miopenBatchNormMode_t bnMode = miopenBNSpatial;
     MIOpenHandle miopen_handle_;
@@ -97,6 +97,7 @@ public:
 
         // Batchnorm2d forward.
         if (!inference) {
+            
             CHECK_MIOPEN_ERROR(miopenBatchNormalizationForwardTraining(miopen_handle_.handle(),
                                                                        bnMode,
                                                                        &alpha_,
@@ -304,7 +305,7 @@ int main(int argc, char **argv) {
         std::cout << std::setw(11) << momentum;
         std::cout << std::setw(7) << eps;
         std::cout << std::setw(10) << precision;
-        std::cout << std::setw(15) << std::setprecision(7);
+        std::cout << std::setw(15) << std::setprecision(7) << fwd_time;
 
 
 
