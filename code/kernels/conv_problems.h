@@ -5,7 +5,7 @@ std::vector<std::tuple<unsigned int, unsigned int, unsigned int, unsigned int,
 
 // ResNeXt101_32x48d
 std::make_tuple(320,320,3,2,64,7,7,3,3,2,2,1),
-std::make_tuple(80,80,64,2,1536,1,1,0,0,1,1,1),
+/*std::make_tuple(80,80,64,2,1536,1,1,0,0,1,1,1),
 std::make_tuple(80,80,1536,2,1536,3,3,1,1,1,1,32),
 std::make_tuple(80,80,1536,2,256,1,1,0,0,1,1,1),
 std::make_tuple(80,80,64,2,256,1,1,0,0,1,1,1),
@@ -49,7 +49,7 @@ std::make_tuple(20,20,2048,28,2048,3,3,1,1,2,2,32),
 std::make_tuple(10,10,2048,28,2048,1,1,0,0,1,1,1),
 std::make_tuple(20,20,1024,28,2048,1,1,0,0,2,2,1),
 std::make_tuple(10,10,2048,28,2048,3,3,1,1,1,1,32)
-
+*/
 /*
 //resnet50
 std::make_tuple(230,230,3,128,64,7,7,0,0,2,2),
