@@ -22,7 +22,7 @@ OPT=-O3
 
 conv:
 	$(MKDIR) $(BIN_DIR)
-	$(HIPCC) ${SOURCE_DIR}/conv_bench_rocm.cpp -o $(BIN_DIR)/conv_bench -I$(DEEPBENCH_INC) -I$(MIOPEN_INC) -l$(MIOPEN_LIB) $(OPT) -std=c++11 --amdgpu-target=gfx906
+	$(HIPCC) ${SOURCE_DIR}/conv_bench_rocm.cpp -o $(BIN_DIR)/conv_bench -I$(DEEPBENCH_INC) -I$(MIOPEN_INC) -L/opt/rocm/miopen/lib -l$(MIOPEN_LIB) $(OPT)  -std=c++11 --amdgpu-target=gfx906
 
 batchnorm:
 	$(MKDIR) $(BIN_DIR)
